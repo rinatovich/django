@@ -1,0 +1,22 @@
+{% extends 'cars/base.html' %}
+
+{% block content %}
+<h1>{{title}}</h1>
+<ul>
+    {% for p in posts %}
+    <li>
+        <div class="article_panel">
+            <div class="first">Category: {{p.cat}}</div>
+            <div class="last">Date: {{p.time_create | date:"d-m-Y H:i:s"}}</div>
+        </div>
+        {% if p.photo %}
+            <p><img class="img-article-left thumb item_img" src="{{p.photo.url}}" alt=""></p>
+        {% endif %}
+        <h2>{{p.title}}</h2>
+        <p>{{p.content | linebreaks | truncatewords:50}}</p>
+        <div><a class="read_more" href="{{ p.get_absolute_url }}">read more</a></div>
+        <hr>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
