@@ -4,6 +4,7 @@ from django.views.generic import ListView, DetailView, CreateView
 
 from .forms import *
 from .models import *
+from .utils import DataMixin
 
 menu = [{'title': "About us", 'url_name': 'about'},
         {'title': "Add new post", 'url_name': 'add_page'},
@@ -12,17 +13,16 @@ menu = [{'title': "About us", 'url_name': 'about'},
         ]
 
 
-class CarsHome(ListView):
+class CarsHome(DataMixin, ListView):
     model = Car
     template_name = "cars/index.html"
     context_object_name = 'posts'
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['menu'] = menu
-        context['title'] = "Main page"
-        context['cat_selected'] = 0
-        return context
+        c_def = self.get_user_context(title='Main Page')
+
+        return dict(list(context.items()) + list(c_def.items()))
 
     def get_queryset(self):
         return Car.objects.filter(is_published=True)
@@ -42,15 +42,16 @@ def about(request):
     return render(request, 'cars/about.html', {'menu': menu, 'title': 'About us'})
 
 
-class AddPage(CreateView):
+class AddPage(DataMixin, CreateView):
     form_class = AddPostForm
     template_name = 'cars/addpage.html'
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['menu'] = menu
-        context['title'] = "Adding post"
-        return context
+        c_def = self.get_user_context(title='Add page')
+
+        return dict(list(context.items()) + list(c_def.items()))
+
 
 # def addpage(request):
 #     if request.method == 'POST':
@@ -77,7 +78,7 @@ def pageNotFound(request, exception):
     return HttpResponseNotFound("<h1 style='color:red'>This page isn't found</h1>")
 
 
-class ShowPost(DetailView):
+class ShowPost(DataMixin, DetailView):
     model = Car
     template_name = 'cars/post.html'
     slug_url_kwarg = 'post_slug'
@@ -85,9 +86,8 @@ class ShowPost(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = context['post']
-        context['menu'] = menu
-        return context
+        c_def = self.get_user_context(title=context['post'])
+        return dict(list(context.items()) + list(c_def.items()))
 
 
 # def show_post(request, post_slug):
@@ -102,7 +102,7 @@ class ShowPost(DetailView):
 #     return render(request, 'cars/post.html', context=context)
 
 
-class CarsCategory(ListView):
+class CarsCategory(DataMixin, ListView):
     model = Car
     template_name = 'cars/index.html'
     context_object_name = 'posts'
@@ -113,10 +113,9 @@ class CarsCategory(ListView):
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Category - ' + str(context['posts'][0].cat)
-        context['menu'] = menu
-        context['cat_selected'] = context['posts'][0].cat_id
-        return context
+        c_def = self.get_user_context(title='Category - ' + str(context['posts'][0].cat),
+                                      cat_selected=context['posts'][0].cat_id)
+        return dict(list(context.items()) + list(c_def.items()))
 # def show_category(request, cat_slug):
 #     cats = Category.objects.all()
 #     for c in cats:
