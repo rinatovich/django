@@ -1,4 +1,5 @@
 {% load static %}
+{% load cache %}
 {% load cars_tags %}
 
 <!DOCTYPE html>
@@ -14,15 +15,20 @@
     <div class="header">
         <ul class="mainmenu" id="mainmenu">
             {% for m in menu %}
-                <li><a href="{% url m.url_name %}">{{m.title}}</a></li>
+                    <li><a href="{% url m.url_name %}">{{m.title}}</a></li>
             {% endfor %}
+            {% if request.user.is_authenticated %}
+            <li>{{ user.username }}<a href="{% url 'logout' %}">Log out</a></li>
+            {% else %}
+            <li><a href="{% url 'register' %}">Register</a> | <a href="{% url 'login' %}">Log in</a></li>
+            {% endif %}
         </ul>
 
     </div>
 {% endblock mainmenu %}
 
-
     <div class="container">
+        {% cache 60 sidebar %}
         <div class="sidebar">
 
             <ul>
@@ -35,9 +41,35 @@
                 {% show_categories cat_selected=cat_selected%}
             </ul>
         </div>
+        {% endcache %}
         <div class="content">
             {% block content %}
             {% endblock %}
+            {% if page_obj.has_other_pages %}
+            <nav>
+                <ul>
+                    {% if page_obj.has_previous %}
+                    <li>
+                        <a href="?page={{ page_obj.previous_page_number }}">&lt;</a>
+                    </li>
+                    {% endif %}
+                    {% for p in paginator.page_range %}
+                    {% if page_obj.number == p %}
+                    <li>{{ p }}</li>
+                    {% elif p >= page_obj.number|add:-2 and p <= page_obj.number|add:2 %}
+                    <li>
+                        <a href="?page={{ p }}">{{ p }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li>
+                        <a href="?page={{ page_obj.next_page_number }}">&gt;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
 </body>

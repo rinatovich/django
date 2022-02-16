@@ -1,6 +1,9 @@
+from django.contrib.auth import logout, login
+from django.contrib.auth.views import LoginView
 from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import ListView, DetailView, CreateView
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, FormView
 
 from .forms import *
 from .models import *
@@ -25,7 +28,7 @@ class CarsHome(DataMixin, ListView):
         return dict(list(context.items()) + list(c_def.items()))
 
     def get_queryset(self):
-        return Car.objects.filter(is_published=True)
+        return Car.objects.filter(is_published=True).select_related('cat')
 
     # def index(request):
     #     posts = Car.objects.all()
@@ -66,12 +69,23 @@ class AddPage(DataMixin, CreateView):
 #         return render(request, 'cars/addpage.html', {'form': form, 'menu': menu, 'title': 'Add new post'})
 
 
-def contact(request):
-    return HttpResponse("This is <bold>Contact</bold>")
+class ContactFormView(DataMixin, FormView):
+    form_class = ContactForm
+    template_name = 'cars/contact.html'
+    success_url = reverse_lazy('home')
+
+    def get_context_data(self,*, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title="Feedback")
+        return dict(list(context.items()) + list(c_def.items()))
+
+    def form_valid(self, form):
+        print(form.cleaned_data)
+        return redirect('home')
 
 
-def login(request):
-    return HttpResponse("This is <bold>Log in   </bold>")
+# def login(request):
+#     return HttpResponse("This is <bold>Log in   </bold>")
 
 
 def pageNotFound(request, exception):
@@ -109,13 +123,16 @@ class CarsCategory(DataMixin, ListView):
     allow_empty = False
 
     def get_queryset(self):
-        return Car.objects.filter(cat__slug=self.kwargs['cat_slug'], is_published=True)
+        return Car.objects.filter(cat__slug=self.kwargs['cat_slug'], is_published=True).select_related('cat')
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        c_def = self.get_user_context(title='Category - ' + str(context['posts'][0].cat),
-                                      cat_selected=context['posts'][0].cat_id)
+        c = Category.objects.get(slug=self.kwargs['cat_slug'])
+        c_def = self.get_user_context(title='Category - ' + str(c.name),
+                                      cat_selected=c.pk)
         return dict(list(context.items()) + list(c_def.items()))
+
+
 # def show_category(request, cat_slug):
 #     cats = Category.objects.all()
 #     for c in cats:
@@ -129,3 +146,36 @@ class CarsCategory(DataMixin, ListView):
 #         'title': "Categories"
 #     }
 #     return render(request, 'cars/index.html', context=context)
+
+class RegisterUser(DataMixin, CreateView):
+    form_class = RegisterUserForm
+    template_name = 'cars/register.html'
+    success_url = reverse_lazy('login')
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Register')
+        return dict(list(context.items()) + list(c_def.items()))
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return redirect('home')
+
+
+class LoginUser(DataMixin, LoginView):
+    form_class = LoginUserForm
+    template_name = 'cars/login.html'
+
+    def get_success_url(self):
+        return reverse_lazy('home')
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Login')
+        return dict(list(context.items()) + list(c_def.items()))
+
+
+def LogoutUser(request):
+    logout(request)
+    return redirect('login')

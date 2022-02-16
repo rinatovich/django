@@ -23,7 +23,7 @@ class Car(models.Model):
     class Meta:
         verbose_name = 'Машины'
         verbose_name_plural = 'Машины'
-        ordering = ['time_create', 'title']
+        ordering = ['id']
 
 
 class Category(models.Model):
